@@ -1,3 +1,5 @@
+.DS_Store
+
 # Should update .dockerignore as well
 .env
 node_modules
