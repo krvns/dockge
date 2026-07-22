@@ -158,7 +158,7 @@ export default defineComponent({
             let url : string;
             const env = process.env.NODE_ENV || "production";
             if (env === "development" || localStorage.dev === "dev") {
-                url = location.protocol + "//" + location.hostname + ":5001";
+                url = location.protocol + "//" + location.hostname + ":" + DOCKGE_DEV_BACKEND_PORT;
             } else {
                 url = location.protocol + "//" + location.host;
             }

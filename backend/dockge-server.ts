@@ -100,8 +100,10 @@ export class DockgeServer {
         log.info("server", "NODE_ENV: " + process.env.NODE_ENV);
 
         // Default stacks directory
+        // Dev / Windows: local ./stacks (no root permissions needed)
+        // Production (Linux/macOS): /opt/stacks (matches official compose.yaml)
         let defaultStacksDir;
-        if (process.platform === "win32") {
+        if (process.platform === "win32" || process.env.NODE_ENV === "development") {
             defaultStacksDir = "./stacks";
         } else {
             defaultStacksDir = "/opt/stacks";

@@ -1,0 +1,17 @@
+.env
+node_modules
+.idea
+data
+stacks
+tmp
+/private
+.git
+.gitignore
+frontend-dist
+frontend/node_modules
+**/.DS_Store
+*.md
+.editorconfig
+.eslintrc.cjs
+.github
+extra/templates

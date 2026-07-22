@@ -67,34 +67,63 @@ I personally do not like something that requires so many configurations before y
 
 ```bash
 npm install
+cp .env.example .env
 ```
+
+Edit `.env` for ports and paths (`DOCKGE_PORT`, `DOCKGE_FRONTEND_PORT`, `DOCKGE_STACKS_DIR`, etc.). The backend loads `.env` via dotenv; Vite and `npm run dev` use the same file.
 
 ## Dev Server
 
+Both frontend and backend must be running at the same time. The Vite frontend connects to the Socket.IO backend (`DOCKGE_PORT`). If you only start the frontend, the UI will show:
+
+> Cannot connect to the socket server […] Reconnecting…
+
+**Recommended** (starts both processes):
+
+```bash
+npm run dev
 ```
-npm run dev:frontend
+
+Or start them in two terminals:
+
+```bash
 npm run dev:backend
+npm run dev:frontend
 ```
+
+Then open `http://localhost:<DOCKGE_FRONTEND_PORT>` (default `5002`).
+
+### macOS note (port 5000)
+
+macOS often binds **AirPlay Receiver** to port `5000`. Keep `DOCKGE_FRONTEND_PORT` off `5000` and different from `DOCKGE_PORT`.
 
 ## Backend Dev Server
 
-It binds to `0.0.0.0:5001` by default.
-
-It is mainly a socket.io app + express.js.
+Binds to `DOCKGE_PORT` (default `5001`). Socket.IO + Express.
 
 ## Frontend Dev Server
 
-It binds to `0.0.0.0:5000` by default. The frontend dev server is used for development only.
-
-For production, it is not used. It will be compiled to `frontend-dist` directory instead.
+Binds to `DOCKGE_FRONTEND_PORT` (default `5002`). Dev-only; production builds to `frontend-dist`.
 
 You can use Vue.js devtools Chrome extension for debugging.
 
 ### Build the frontend
 
 ```bash
-npm run build
+npm run build:frontend
 ```
+
+## Production image from local source
+
+The root `compose.yaml` pulls the published `louislam/dockge` image. To build and run from this checkout (local `./data` + `./stacks` via `.env`):
+
+```bash
+cp .env.example .env   # if you have not already
+mkdir -p stacks data
+docker compose -f compose.build.yaml up -d --build
+```
+
+Open `http://localhost:<DOCKGE_HOST_PORT>` (default `5001`).
 
 ## Database Migration
 
