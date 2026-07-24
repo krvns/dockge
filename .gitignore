@@ -1,6 +1,6 @@
-.DS_Store
-
 # Should update .dockerignore as well
+.DS_Store
+*.ignore*
 .env
 node_modules
 .idea

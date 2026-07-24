@@ -1,4 +1,6 @@
 # Should be identical to .gitignore
+.DS_Store
+*.ignore*
 .env
 node_modules
 .idea
@@ -7,7 +9,7 @@ stacks
 tmp
 /private
 
-# Docker extra
+# Docker only
 docker
 frontend
 .editorconfig
