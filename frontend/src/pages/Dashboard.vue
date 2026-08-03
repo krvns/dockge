@@ -4,6 +4,7 @@
             <div v-if="!$root.isMobile" class="col-12 col-md-4 col-xl-3">
                 <div>
                     <router-link to="/compose" class="btn btn-primary mb-3"><font-awesome-icon icon="plus" /> {{ $t("compose") }}</router-link>
+                    <button class="btn btn-primary mb-3 ms-2" @click="$refs.gitSourceModal.showModal()"><font-awesome-icon icon="code-branch" /> {{ $t("Add from Git") }}</button>
                 </div>
                 <StackList :scrollbar="true" />
             </div>
@@ -13,16 +14,19 @@
                 <router-view :key="$route.fullPath" :calculatedHeight="height" />
             </div>
         </div>
+        <GitSourceModal ref="gitSourceModal" />
     </div>
 </template>
 
 <script>
 
 import StackList from "../components/StackList.vue";
+import GitSourceModal from "../components/GitSourceModal.vue";
 
 export default {
     components: {
         StackList,
+        GitSourceModal,
     },
     data() {
         return {

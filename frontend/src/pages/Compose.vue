@@ -46,6 +46,16 @@
                         {{ $t("stopStack") }}
                     </button>
 
+                    <button v-if="stack.isGitSource && !isEditMode" class="btn btn-normal" :disabled="processing" @click="fetchGitStatus">
+                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
+                        {{ $t("Fetch") }}
+                    </button>
+
+                    <button v-if="stack.isGitSource && !isEditMode" class="btn btn-normal" :disabled="processing" @click="pullGit">
+                        <font-awesome-icon icon="download" class="me-1" />
+                        {{ $t("Pull") }}
+                    </button>
+
                     <BDropdown right text="" variant="normal">
                         <BDropdownItem @click="downStack">
                             <font-awesome-icon icon="stop" class="me-1" />

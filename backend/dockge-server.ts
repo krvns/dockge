@@ -36,6 +36,7 @@ import { AgentProxySocketHandler } from "./socket-handlers/agent-proxy-socket-ha
 import { AgentSocketHandler } from "./agent-socket-handler";
 import { AgentSocket } from "../common/agent-socket";
 import { ManageAgentSocketHandler } from "./socket-handlers/manage-agent-socket-handler";
+import { GitSourceSocketHandler } from "./socket-handlers/git-source-socket-handler";
 import { Terminal } from "./terminal";
 
 export class DockgeServer {
@@ -59,6 +60,7 @@ export class DockgeServer {
     socketHandlerList : SocketHandler[] = [
         new MainSocketHandler(),
         new ManageAgentSocketHandler(),
+        new GitSourceSocketHandler(),
     ];
 
     agentProxySocketHandler = new AgentProxySocketHandler();

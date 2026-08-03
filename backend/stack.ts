@@ -85,6 +85,7 @@ export class Stack {
             tags: [],
             isManagedByDockge: this.isManagedByDockge,
             composeFileName: this._composeFileName,
+            isGitSource: fs.existsSync(path.join(this.path, ".git")),
             endpoint,
         };
     }
