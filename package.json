@@ -24,7 +24,8 @@
         "start-docker": "docker run --rm -p 5001:5001 --name dockge louislam/dockge:latest",
         "mark-as-nightly": "tsx ./extra/mark-as-nightly.ts",
         "reformat-changelog": "tsx ./extra/reformat-changelog.ts",
-        "reset-password": "tsx ./extra/reset-password.ts"
+        "reset-password": "tsx ./extra/reset-password.ts",
+        "test:e2e": "playwright test"
     },
     "dependencies": {
         "@homebridge/node-pty-prebuilt-multiarch": "0.11.14",
@@ -62,6 +63,7 @@
         "@codemirror/lang-python": "^6.1.7",
         "@codemirror/lang-yaml": "^6.1.2",
         "@fontsource/jetbrains-mono": "^5.2.5",
+        "@playwright/test": "^1.44.0",
         "@fortawesome/fontawesome-svg-core": "6.4.2",
         "@fortawesome/free-regular-svg-icons": "6.4.2",
         "@fortawesome/free-solid-svg-icons": "6.4.2",

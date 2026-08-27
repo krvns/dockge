@@ -46,22 +46,24 @@
                         {{ $t("stopStack") }}
                     </button>
 
-                    <button v-if="stack.isGitSource && !isEditMode" class="btn btn-normal" :disabled="processing" @click="fetchGitStatus">
-                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
-                        {{ $t("Fetch") }}
-                    </button>
-
-                    <button v-if="stack.isGitSource && !isEditMode" class="btn btn-normal" :disabled="processing" @click="pullGit">
-                        <font-awesome-icon icon="download" class="me-1" />
-                        {{ $t("Pull") }}
-                    </button>
-
                     <BDropdown right text="" variant="normal">
                         <BDropdownItem @click="downStack">
                             <font-awesome-icon icon="stop" class="me-1" />
                             {{ $t("downStack") }}
                         </BDropdownItem>
                     </BDropdown>
+                </div>
+
+                <div v-if="stack.isGitSource && !isEditMode" class="btn-group me-2" role="group">
+                    <button class="btn btn-normal" :disabled="processing" @click="fetchGitStatus">
+                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
+                        {{ $t("Fetch") }}
+                    </button>
+
+                    <button class="btn btn-normal" :disabled="processing" @click="pullGit">
+                        <font-awesome-icon icon="download" class="me-1" />
+                        {{ $t("Pull") }}
+                    </button>
                 </div>
 
                 <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
@@ -76,6 +78,14 @@
                 <a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url">
                     <span class="badge bg-secondary me-2">{{ urlItem.display }}</span>
                 </a>
+            </div>
+
+            <!-- Git Source Details -->
+            <div v-if="stack.isGitSource && stack.gitUrl" class="mb-3">
+                <span class="badge bg-secondary me-2">
+                    <font-awesome-icon icon="code-branch" class="me-1" />
+                    Git: {{ stack.gitUrl }} <span v-if="stack.gitBranch">({{ stack.gitBranch }})</span>
+                </span>
             </div>
 
             <!-- Progress Terminal -->
@@ -605,6 +615,15 @@ export default {
                     this.yamlCodeChange();
                     this.processing = false;
                     this.bindTerminal();
+
+                    if (this.stack.isGitSource) {
+                        this.$root.getSocket().emit("getGitSourceDetails", this.stack.name, (gitRes) => {
+                            if (gitRes.ok) {
+                                this.stack.gitUrl = gitRes.url;
+                                this.stack.gitBranch = gitRes.branch;
+                            }
+                        });
+                    }
                 } else {
                     this.$root.toastRes(res);
                 }
@@ -710,6 +729,38 @@ export default {
             this.$root.emitAgent(this.endpoint, "updateStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
+            });
+        },
+
+        fetchGitStatus() {
+            this.processing = true;
+            this.$root.getSocket().emit("fetchGitSourceStatus", this.stack.name, (res) => {
+                this.processing = false;
+                if (res.ok) {
+                    if (res.isBehind) {
+                        this.$toast.info(res.statusMessage || this.$t("Update available! Branch is behind remote."));
+                    } else {
+                        this.$toast.success(res.statusMessage || this.$t("Branch is up to date."));
+                    }
+                } else {
+                    this.$toast.error(res.msg);
+                }
+            });
+        },
+
+        pullGit() {
+            this.processing = true;
+            this.$root.getSocket().emit("pullGitSource", this.stack.name, (res) => {
+                this.processing = false;
+                if (res.ok) {
+                    this.$toast.success(this.$t("Successfully pulled latest changes."));
+                    if (res.output) {
+                        this.$toast.info(res.output);
+                    }
+                    this.loadStack();
+                } else {
+                    this.$toast.error(res.msg);
+                }
             });
         },
 

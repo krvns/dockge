@@ -9,7 +9,7 @@ import path from "path";
 
 export class GitSourceSocketHandler extends SocketHandler {
     create(socket: DockgeSocket, server: DockgeServer) {
-        
+
         socket.on("addGitSource", async (url: string, stackName: string, branch: string, callback: Function) => {
             try {
                 checkLogin(socket);
@@ -18,24 +18,60 @@ export class GitSourceSocketHandler extends SocketHandler {
                 const stackPath = path.join(stacksDir, stackName);
 
                 if (fs.existsSync(stackPath)) {
-                    throw new Error(`Stack directory already exists: ${stackName}`);
+                    throw new Error(`Stack directory already exists: ${stackName}. Please provide a different Stack Name.`);
                 }
 
-                log.info("git", `Cloning ${url} branch ${branch} to ${stackPath}`);
-                await childProcessAsync.spawn("git", ["clone", "-b", branch || "main", url, stackPath], {
+                log.info("git", `Cloning ${url} ${branch ? 'branch ' + branch : 'default branch'} to ${stackPath}`);
+
+                const gitArgs = ["clone", "--progress"];
+                if (branch) {
+                    gitArgs.push("-b", branch);
+                }
+                gitArgs.push(url, stackPath);
+                
+                const child = childProcessAsync.spawn("git", gitArgs, {
                     encoding: "utf-8",
                 });
 
-                const gitSource = R.dispense("git_source");
-                gitSource.stack_name = stackName;
+                if (child.stderr) {
+                    child.stderr.on("data", (data: string) => {
+                        socket.emit("gitCloneProgress", data.toString());
+                    });
+                }
+
+                await child;
+
+                let actualBranch = branch;
+                if (!actualBranch) {
+                    const resBranch = await childProcessAsync.spawn("git", ["branch", "--show-current"], {
+                        cwd: stackPath,
+                        encoding: "utf-8",
+                    });
+                    actualBranch = (resBranch.stdout || "").toString().trim() || "main";
+                }
+
+                let gitSource = await R.findOne("git_source", " stack_name = ? ", [stackName]);
+                if (!gitSource) {
+                    gitSource = R.dispense("git_source");
+                    gitSource.stack_name = stackName;
+                }
                 gitSource.url = url;
-                gitSource.branch = branch || "main";
+                gitSource.branch = actualBranch;
                 await R.store(gitSource);
+
+                server.sendStackList();
 
                 callback({ ok: true });
             } catch (e: any) {
-                log.error("git", `Failed to add git source: ${e.message}`);
-                callback({ ok: false, msg: e.message });
+                let stderr = e.stderr ? `\n${e.stderr.toString()}` : "";
+                let msg = `${e.message}${stderr}`;
+
+                if (stderr.includes("not found in upstream origin") || stderr.includes("Remote branch") || stderr.includes("Could not find remote branch")) {
+                    msg = `Branch not found. Please chek and update the branch name. \n${stderr}`;
+                }
+
+                log.error("git", `Failed to add git source: ${msg}`);
+                callback({ ok: false, msg: msg });
             }
         });
 
@@ -74,11 +110,23 @@ export class GitSourceSocketHandler extends SocketHandler {
 
                 const output = (res.stdout || "").toString();
                 const isBehind = output.includes("Your branch is behind");
-                
-                callback({ ok: true, isBehind });
+
+                let statusMessage = "Branch is up to date.";
+                if (isBehind) {
+                    const lines = output.split("\n");
+                    const behindLine = lines.find((line: string) => line.includes("Your branch is behind"));
+                    if (behindLine) {
+                        statusMessage = behindLine.trim();
+                    } else {
+                        statusMessage = "Update available! Branch is behind remote.";
+                    }
+                }
+
+                callback({ ok: true, isBehind, statusMessage });
             } catch (e: any) {
-                log.error("git", `Failed to fetch git source status: ${e.message}`);
-                callback({ ok: false, msg: e.message });
+                const stderr = e.stderr ? `\n${e.stderr.toString()}` : "";
+                log.error("git", `Failed to fetch git source status: ${e.message}${stderr}`);
+                callback({ ok: false, msg: `${e.message}${stderr}` });
             }
         });
 
@@ -92,15 +140,18 @@ export class GitSourceSocketHandler extends SocketHandler {
                     throw new Error("Stack directory does not exist.");
                 }
 
-                await childProcessAsync.spawn("git", ["pull"], {
+                const res = await childProcessAsync.spawn("git", ["pull"], {
                     cwd: stackPath,
                     encoding: "utf-8",
                 });
+                
+                const output = (res.stdout || "").toString().trim();
 
-                callback({ ok: true });
+                callback({ ok: true, output });
             } catch (e: any) {
-                log.error("git", `Failed to pull git source: ${e.message}`);
-                callback({ ok: false, msg: e.message });
+                const stderr = e.stderr ? `\n${e.stderr.toString()}` : "";
+                log.error("git", `Failed to pull git source: ${e.message}${stderr}`);
+                callback({ ok: false, msg: `${e.message}${stderr}` });
             }
         });
 
@@ -111,6 +162,58 @@ export class GitSourceSocketHandler extends SocketHandler {
                 callback({ ok: true, sources });
             } catch (e: any) {
                 callback({ ok: false, msg: e.message });
+            }
+        });
+
+        socket.on("getGitSourceDetails", async (stackName: string, callback: Function) => {
+            try {
+                checkLogin(socket);
+                let url = "";
+                let branch = "";
+                const stacksDir = server.stacksDir;
+                const stackPath = path.join(stacksDir, stackName);
+
+                if (!fs.existsSync(stackPath)) {
+                    throw new Error("Stack directory does not exist.");
+                }
+
+                let gitSource = await R.findOne("git_source", " stack_name = ? ", [stackName]);
+                if (gitSource) {
+                    url = gitSource.url;
+                    branch = gitSource.branch;
+                }
+
+                try {
+                    if (!url) {
+                        const resUrl = await childProcessAsync.spawn("git", ["remote", "get-url", "origin"], {
+                            cwd: stackPath,
+                            encoding: "utf-8",
+                        });
+                        url = (resUrl.stdout || "").toString().trim();
+                    }
+
+                    const resBranch = await childProcessAsync.spawn("git", ["branch", "--show-current"], {
+                        cwd: stackPath,
+                        encoding: "utf-8",
+                    });
+                    const fsBranch = (resBranch.stdout || "").toString().trim();
+                    
+                    if (fsBranch) {
+                        branch = fsBranch;
+                        // Auto-correct the database if it was out of sync (e.g., due to the previous 'main' bug)
+                        if (gitSource && gitSource.branch !== branch) {
+                            gitSource.branch = branch;
+                            await R.store(gitSource);
+                        }
+                    }
+                } catch (e) {
+                    // ignore error if git commands fail
+                }
+
+                callback({ ok: true, url, branch });
+            } catch (e: any) {
+                const stderr = e.stderr ? `\n${e.stderr.toString()}` : "";
+                callback({ ok: false, msg: `${e.message}${stderr}` });
             }
         });
     }

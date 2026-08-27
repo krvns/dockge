@@ -148,5 +148,19 @@
     "rmCode": "rm",
     "rmRfCode": "rm -rf",
     "envVarCode": "DOCKGE_ENABLE_CONSOLE=true",
-    "confirmLeaveStack": "You are currently editing a stack. Are you sure you want to leave?"
+    "confirmLeaveStack": "You are currently editing a stack. Are you sure you want to leave?",
+    "Add from Git": "Add from Git",
+    "Clone": "Clone",
+    "Stack Name": "Stack Name",
+    "Git SSH URL": "Git SSH URL",
+    "Branch": "Branch",
+    "Optional": "Optional",
+    "Extracted from URL if empty": "Extracted from URL if empty",
+    "Leave empty for default branch": "Leave empty for default branch",
+    "Update available! Branch is behind remote.": "Update available! Branch is behind remote.",
+    "Branch is up to date.": "Branch is up to date.",
+    "Successfully pulled latest changes.": "Successfully pulled latest changes.",
+    "Could not extract stack name from URL. Please provide one manually.": "Could not extract stack name from URL. Please provide one manually.",
+    "Please provide a Git URL.": "Please provide a Git URL.",
+    "Git source cloned successfully.": "Git source cloned successfully."
 }
