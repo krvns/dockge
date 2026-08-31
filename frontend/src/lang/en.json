@@ -162,5 +162,8 @@
     "Successfully pulled latest changes.": "Successfully pulled latest changes.",
     "Could not extract stack name from URL. Please provide one manually.": "Could not extract stack name from URL. Please provide one manually.",
     "Please provide a Git URL.": "Please provide a Git URL.",
-    "Git source cloned successfully.": "Git source cloned successfully."
+    "Git source cloned successfully.": "Git source cloned successfully.",
+    "Close": "Close",
+    "Clone successful.": "Clone successful.",
+    "Clone failed:": "Clone failed:"
 }

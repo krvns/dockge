@@ -120,7 +120,7 @@ The root `compose.yaml` pulls the published `louislam/dockge` image. To build an
 ```bash
 cp .env.example .env   # if you have not already
 mkdir -p stacks data
-docker compose -f compose.build.yaml up -d --build
+docker compose -f compose.yaml up -d --build
 ```
 
 Open `http://localhost:<DOCKGE_HOST_PORT>` (default `5001`).

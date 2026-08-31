@@ -1,22 +1,29 @@
+# Build and run a production Dockge image from local source.
+# Configuration: copy .env.example → .env (Compose loads .env automatically)
+#
+# Usage:
+#   cp .env.example .env   # once
+#   mkdir -p stacks data
+#   docker compose -f compose.yaml up -d --build --cap-drop=ALL
+#
+# Stacks bind: host path must equal container path (Docker-via-socket).
+# Default bind is $PWD/stacks. Override with DOCKGE_STACKS_BIND in .env
+# (absolute path). DOCKGE_STACKS_DIR in .env is for npm run dev only.
+
 services:
   dockge:
-    image: louislam/dockge:1
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.local
+    image: ${DOCKGE_IMAGE:-dockge:local}
     restart: unless-stopped
     ports:
-      # Host Port : Container Port
-      - 5001:5001
+      - "${DOCKGE_HOST_PORT}:${DOCKGE_PORT}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/app/data
-        
-      # If you want to use private registries, you need to share the auth file with Dockge:
-      # - /root/.docker/:/root/.docker
-
-      # Stacks Directory
-      # ⚠️ READ IT CAREFULLY. If you did it wrong, your data could end up writing into a WRONG PATH.
-      # ⚠️ 1. FULL path only. No relative path (MUST)
-      # ⚠️ 2. Left Stacks Path === Right Stacks Path (MUST)
-      - /opt/stacks:/opt/stacks
+      - ${DOCKGE_DATA_DIR}:/app/data
+      - ${DOCKGE_STACKS_BIND:-$PWD/stacks}:${DOCKGE_STACKS_BIND:-$PWD/stacks}
     environment:
-      # Tell Dockge where is your stacks directory
-      - DOCKGE_STACKS_DIR=/opt/stacks
+      DOCKGE_PORT: ${DOCKGE_PORT}
+      DOCKGE_DATA_DIR: /app/data
+      DOCKGE_STACKS_DIR: ${DOCKGE_STACKS_BIND:-$PWD/stacks}

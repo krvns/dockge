@@ -13,43 +13,8 @@ class CheckVersion {
     interval? : NodeJS.Timeout;
 
     async startInterval() {
-        const check = async () => {
-            if (await Settings.get("checkUpdate") === false) {
-                return;
-            }
-
-            log.debug("update-checker", "Retrieving latest versions");
-
-            try {
-                const res = await fetch(CHECK_URL);
-                const data = await res.json();
-
-                // For debug
-                if (process.env.TEST_CHECK_VERSION === "1") {
-                    data.slow = "1000.0.0";
-                }
-
-                const checkBeta = await Settings.get("checkBeta");
-
-                if (checkBeta && data.beta) {
-                    if (compareVersions.compare(data.beta, data.slow, ">")) {
-                        this.latestVersion = data.beta;
-                        return;
-                    }
-                }
-
-                if (data.slow) {
-                    this.latestVersion = data.slow;
-                }
-
-            } catch (_) {
-                log.info("update-checker", "Failed to check for new versions");
-            }
-
-        };
-
-        await check();
-        this.interval = setInterval(check, UPDATE_CHECKER_INTERVAL_MS);
+        // Disabled network egress update checker
+        return;
     }
 }
 

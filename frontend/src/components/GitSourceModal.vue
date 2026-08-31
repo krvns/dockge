@@ -1,18 +1,29 @@
 <template>
-    <BModal ref="modal" v-model="show" :title="$t('Add from Git')" :okTitle="$t('Clone')" @ok="clone" @hidden="onHidden" :busy="processing">
-        <template #modal-footer="{ ok, cancel }">
-            <button class="btn btn-secondary" @click="cancel()" :disabled="processing">{{ $t("Cancel") }}</button>
-            <button class="btn btn-primary" @click="clone($event)" :disabled="processing">
+    <BModal ref="modal" v-model="show" :title="$t('Add from Git')" :okTitle="isDone ? $t('Close') : $t('Clone')" :cancelTitle="$t('Cancel')" :hideCancel="isDone" @ok="isDone ? onHidden() : clone($event)" @hidden="onHidden" :busy="processing">
+        <template #footer="{ ok, cancel }">
+            <button v-if="!isDone" class="btn btn-secondary" @click="cancel()" :disabled="processing">{{ $t("Cancel") }}</button>
+            <button v-if="!isDone" class="btn btn-primary" @click="clone($event)" :disabled="processing">
                 <div v-if="processing" class="spinner-border spinner-border-sm me-1"></div>
                 {{ $t("Clone") }}
+            </button>
+            <button v-else class="btn btn-primary" @click="cancel()">
+                {{ $t("Close") }}
             </button>
         </template>
 
         <div class="mb-3">
             <label for="url" class="form-label">{{ $t("Git SSH URL") }}</label>
-            <input id="url" v-model="url" type="text" class="form-control" required placeholder="git@github.com:user/repo.git">
+            <input id="url" v-model="url" type="text" class="form-control" required placeholder="git@github.com:user/repo.git" :disabled="processing || isDone">
             <div v-if="processing && progressText" class="form-text text-info mt-2" style="white-space: pre-wrap;">
                 {{ progressText }}
+            </div>
+            <div v-if="isDone" class="mt-3">
+                <div v-if="isSuccess" class="alert alert-success mb-0">
+                    {{ $t("Clone successful.") }}
+                </div>
+                <div v-else class="alert alert-danger mb-0" style="white-space: pre-wrap; word-break: break-all;">
+                    {{ $t("Clone failed:") }} {{ errorMsg }}
+                </div>
             </div>
         </div>
 
@@ -21,12 +32,12 @@
 
         <div class="mb-3">
             <label for="stackName" class="form-label">{{ $t("Stack Name") }}</label>
-            <input id="stackName" v-model="stackName" type="text" class="form-control" :placeholder="$t('Extracted from URL if empty')">
+            <input id="stackName" v-model="stackName" type="text" class="form-control" :placeholder="$t('Extracted from URL if empty')" :disabled="processing || isDone">
         </div>
         
         <div class="mb-3">
             <label for="branch" class="form-label">{{ $t("Branch") }}</label>
-            <input id="branch" v-model="branch" type="text" class="form-control" :placeholder="$t('Leave empty for default branch')">
+            <input id="branch" v-model="branch" type="text" class="form-control" :placeholder="$t('Leave empty for default branch')" :disabled="processing || isDone">
         </div>
     </BModal>
 </template>
@@ -37,6 +48,9 @@ export default {
         return {
             show: false,
             processing: false,
+            isDone: false,
+            isSuccess: false,
+            errorMsg: "",
             stackName: "",
             url: "",
             branch: "",
@@ -66,6 +80,9 @@ export default {
             this.url = "";
             this.branch = "";
             this.processing = false;
+            this.isDone = false;
+            this.isSuccess = false;
+            this.errorMsg = "";
             this.progressText = "";
         },
         clone(bvEvent) {
@@ -98,15 +115,13 @@ export default {
 
             this.$root.getSocket().emit("addGitSource", this.url, finalStackName, this.branch, (res) => {
                 this.processing = false;
+                this.isDone = true;
                 if (res.ok) {
-                    this.$toast.success(this.$t("Git source cloned successfully."));
-                    this.show = false;
-                    if (this.$refs.modal && typeof this.$refs.modal.hide === 'function') {
-                        this.$refs.modal.hide();
-                    }
+                    this.isSuccess = true;
                     this.$emit("added");
                 } else {
-                    this.$toast.error(res.msg);
+                    this.isSuccess = false;
+                    this.errorMsg = res.msg;
                 }
             });
         }

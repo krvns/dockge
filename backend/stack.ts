@@ -94,10 +94,16 @@ export class Stack {
      * Get the status of the stack from `docker compose ps --format json`
      */
     async ps() : Promise<object> {
-        let res = await childProcessAsync.spawn("docker", this.getComposeOptions("ps", "--format", "json"), {
-            cwd: this.path,
-            encoding: "utf-8",
-        });
+        let res;
+        try {
+            res = await childProcessAsync.spawn("docker", this.getComposeOptions("ps", "--format", "json"), {
+                cwd: this.path,
+                encoding: "utf-8",
+            });
+        } catch (e: any) {
+            log.warn("ps", "Docker error: " + (e.stderr ? e.stderr.toString() : e.message));
+            return {};
+        }
         if (!res.stdout) {
             return {};
         }
@@ -281,8 +287,8 @@ export class Stack {
                     if (!stat.isDirectory()) {
                         continue;
                     }
-                    // If no compose file exists, skip it
-                    if (!await Stack.composeFileExists(stacksDir, filename)) {
+                    // Skip hidden directories like .git or .vscode
+                    if (filename.startsWith(".")) {
                         continue;
                     }
                     let stack = await this.getStack(server, filename);
@@ -299,10 +305,15 @@ export class Stack {
             this.managedStackList = new Map(stackList);
         }
 
-        // Get status from docker compose ls
-        let res = await childProcessAsync.spawn("docker", [ "compose", "ls", "--all", "--format", "json" ], {
-            encoding: "utf-8",
-        });
+        let res;
+        try {
+            res = await childProcessAsync.spawn("docker", [ "compose", "ls", "--all", "--format", "json" ], {
+                encoding: "utf-8",
+            });
+        } catch (e: any) {
+            log.warn("getStackList", "Docker error: " + (e.stderr ? e.stderr.toString() : e.message));
+            throw new Error(e.stderr ? e.stderr.toString() : e.message);
+        }
 
         if (!res.stdout) {
             return stackList;
@@ -337,9 +348,15 @@ export class Stack {
     static async getStatusList() : Promise<Map<string, number>> {
         let statusList = new Map<string, number>();
 
-        let res = await childProcessAsync.spawn("docker", [ "compose", "ls", "--all", "--format", "json" ], {
-            encoding: "utf-8",
-        });
+        let res;
+        try {
+            res = await childProcessAsync.spawn("docker", [ "compose", "ls", "--all", "--format", "json" ], {
+                encoding: "utf-8",
+            });
+        } catch (e: any) {
+            log.warn("getStatusList", "Docker error: " + (e.stderr ? e.stderr.toString() : e.message));
+            return statusList;
+        }
 
         if (!res.stdout) {
             return statusList;

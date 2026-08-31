@@ -602,7 +602,17 @@ export class DockgeServer {
 
                 // Get the list only if there is a logged in user
                 if (!stackList) {
-                    stackList = await Stack.getStackList(this, useCache);
+                    try {
+                        stackList = await Stack.getStackList(this, useCache);
+                    } catch (e: any) {
+                        log.error("sendStackList", "Docker Error: " + e.message);
+                        dockgeSocket.emitAgent("agentStatus", {
+                            status: "offline",
+                            msg: "Docker Error: " + e.message,
+                            endpoint: dockgeSocket.endpoint,
+                        });
+                        continue;
+                    }
                 }
 
                 let map : Map<string, object> = new Map();
@@ -621,9 +631,15 @@ export class DockgeServer {
     }
 
     async getDockerNetworkList() : Promise<string[]> {
-        let res = await childProcessAsync.spawn("docker", [ "network", "ls", "--format", "{{.Name}}" ], {
-            encoding: "utf-8",
-        });
+        let res;
+        try {
+            res = await childProcessAsync.spawn("docker", [ "network", "ls", "--format", "{{.Name}}" ], {
+                encoding: "utf-8",
+            });
+        } catch (e: any) {
+            log.warn("getDockerNetworkList", "Docker error: " + (e.stderr ? e.stderr.toString() : e.message));
+            return [];
+        }
 
         if (!res.stdout) {
             return [];

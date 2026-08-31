@@ -6,28 +6,27 @@ test.describe('Git Sources Management', () => {
     // Go to the app
     await page.goto('/');
 
-    // Wait for the app to decide where to route us (setup, login, or dashboard)
-    await Promise.any([
-      page.waitForURL('**/setup'),
-      page.locator('#username').waitFor(), // Login page
-      page.getByRole('button', { name: /Add from Git/i }).waitFor() // Dashboard
-    ]).catch(() => { });
+    // Wait for either the setup form, the login form, or a dashboard element to appear
+    await page.waitForSelector('#passwordRepeat, #username, button:has-text("Add from Git")', { state: 'visible' });
 
-    // Check if we are redirected to setup
-    if (page.url().includes('/setup')) {
-      await page.fill('#username', 'admin');
-      await page.fill('#password', 'dockgetest123');
-      await page.fill('#passwordRepeat', 'dockgetest123');
+    // Quick check to see where we landed
+    const isSetup = await page.locator('#passwordRepeat').isVisible();
+    const isLogin = await page.locator('#username').isVisible();
+
+    if (isSetup) {
+      await page.fill('#username', 'doc');
+      await page.fill('#password', 'aibolit@');
+      await page.fill('#passwordRepeat', 'aibolit@');
       await page.click('button[type="submit"]');
       await page.getByRole('button', { name: /Add from Git/i }).waitFor();
-    } else if (await page.locator('#username').isVisible()) {
-      // If we are on the login page
-      await page.fill('#username', 'admin');
+    } else if (isLogin) {
+      await page.fill('#username', 'doc');
       const passwordInput = page.locator('input[type="password"]');
-      await passwordInput.fill('dockgetest123');
+      await passwordInput.fill('aibolit@');
       await page.click('button[type="submit"]');
-
-      // Wait for login to complete and dashboard to appear
+      await page.getByRole('button', { name: /Add from Git/i }).waitFor();
+    } else {
+      // Already logged in / on dashboard
       await page.getByRole('button', { name: /Add from Git/i }).waitFor();
     }
   });

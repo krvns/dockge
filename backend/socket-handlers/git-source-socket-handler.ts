@@ -29,17 +29,33 @@ export class GitSourceSocketHandler extends SocketHandler {
                 }
                 gitArgs.push(url, stackPath);
                 
-                const child = childProcessAsync.spawn("git", gitArgs, {
-                    encoding: "utf-8",
-                });
+                const { spawn } = await import("child_process");
+                const child = spawn("git", gitArgs);
 
+                let stderrOutput = "";
                 if (child.stderr) {
-                    child.stderr.on("data", (data: string) => {
-                        socket.emit("gitCloneProgress", data.toString());
+                    child.stderr.on("data", (data: Buffer) => {
+                        const str = data.toString();
+                        stderrOutput += str;
+                        // Limit stderr to last 500KB to prevent memory leak
+                        if (stderrOutput.length > 500 * 1024) {
+                            stderrOutput = stderrOutput.slice(-500 * 1024);
+                        }
+                        socket.emit("gitCloneProgress", str);
                     });
                 }
 
-                await child;
+                await new Promise<void>((resolve, reject) => {
+                    child.on("close", (code: number) => {
+                        if (code === 0) resolve();
+                        else {
+                            const err: any = new Error(`git clone failed with exit code ${code}`);
+                            err.stderr = stderrOutput;
+                            reject(err);
+                        }
+                    });
+                    child.on("error", reject);
+                });
 
                 let actualBranch = branch;
                 if (!actualBranch) {

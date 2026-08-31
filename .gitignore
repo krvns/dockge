@@ -12,6 +12,5 @@ tmp
 # Git only
 frontend-dist
 
-test-results/.last-run.json
-test-results/git-sources-Git-Sources-Ma-bfecc-ify-and-delete-a-git-source-chromium/error-context.md
-playwright-report/index.html
+tests/test-results/
+tests/playwright-report/
