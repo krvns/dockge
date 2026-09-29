@@ -18,7 +18,7 @@ services:
     image: ${DOCKGE_IMAGE:-dockge:local}
     restart: unless-stopped
     ports:
-      - "${DOCKGE_HOST_PORT}:${DOCKGE_PORT}"
+      - "${NETBIRD_IP:-127.0.0.1}:${DOCKGE_HOST_PORT:-5001}:${DOCKGE_PORT:-5001}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DOCKGE_DATA_DIR}:/app/data
@@ -27,3 +27,9 @@ services:
       DOCKGE_PORT: ${DOCKGE_PORT}
       DOCKGE_DATA_DIR: /app/data
       DOCKGE_STACKS_DIR: ${DOCKGE_STACKS_BIND:-$PWD/stacks}
+    networks:
+      - proxy_net
+
+networks:
+  proxy_net:
+    external: true
